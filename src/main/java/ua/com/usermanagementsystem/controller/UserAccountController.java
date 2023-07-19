@@ -1,12 +1,12 @@
 package ua.com.usermanagementsystem.controller;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,9 +16,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import ua.com.usermanagementsystem.dto.request.StatusRequestDto;
 import ua.com.usermanagementsystem.dto.request.UserAccountRequestDto;
 import ua.com.usermanagementsystem.dto.response.UserAccountResponseDto;
-import ua.com.usermanagementsystem.model.Status;
 import ua.com.usermanagementsystem.model.UserAccount;
 import ua.com.usermanagementsystem.service.UserAccountService;
 import ua.com.usermanagementsystem.service.mapper.RequestDtoMapper;
@@ -29,16 +29,12 @@ import ua.com.usermanagementsystem.service.mapper.ResponseDtoMapper;
 @RequiredArgsConstructor
 public class UserAccountController {
     private final UserAccountService userAccountService;
-    private final PasswordEncoder passwordEncoder;
     private final RequestDtoMapper<UserAccountRequestDto, UserAccount> userAccountRequestMapper;
     private final ResponseDtoMapper<UserAccountResponseDto, UserAccount> userAccountResponseMapper;
 
-    @PostMapping("/new")
+    @PostMapping
     public UserAccountResponseDto create(@Valid @RequestBody UserAccountRequestDto dto) {
         UserAccount user = userAccountRequestMapper.mapToModel(dto);
-        user.setStatus(Status.ACTIVE);
-        String encodedPassword = passwordEncoder.encode(user.getPassword());
-        user.setPassword(encodedPassword);
         return userAccountResponseMapper.mapToDto(userAccountService.add(user));
     }
 
@@ -47,7 +43,7 @@ public class UserAccountController {
         return userAccountResponseMapper.mapToDto(userAccountService.get(id));
     }
 
-    @PutMapping("/{id}/edit")
+    @PutMapping("/{id}")
     public UserAccountResponseDto update(@PathVariable Long id,
                                          @Valid @RequestBody UserAccountRequestDto dto) {
         UserAccount userAccount = userAccountRequestMapper.mapToModel(dto);
@@ -62,9 +58,12 @@ public class UserAccountController {
     }
 
     @GetMapping
-    public List<UserAccountResponseDto> getAll(@RequestParam(defaultValue = "0") Integer page,
-                                               @RequestParam(defaultValue = "5") Integer size) {
-        PageRequest pageRequest = PageRequest.of(page, size);
+    public List<UserAccountResponseDto> getAll(
+            @RequestParam(defaultValue = "1")
+            @Min(value = 1, message = "Page number should not be less than 1") Integer page,
+            @RequestParam(defaultValue = "5")
+            @Min(value = 1, message = "Size should not be less than 1") Integer size) {
+        PageRequest pageRequest = PageRequest.of(page - 1, size);
         return userAccountService.findAll(pageRequest).stream()
                 .map(userAccountResponseMapper::mapToDto)
                 .collect(Collectors.toList());
@@ -72,8 +71,8 @@ public class UserAccountController {
 
     @PutMapping("/{id}/status")
     public UserAccountResponseDto changeStatus(@PathVariable Long id,
-                                               @RequestParam Status newStatus) {
+                                               @RequestBody StatusRequestDto statusRequestDto) {
         return userAccountResponseMapper
-                .mapToDto(userAccountService.changeStatus(id, newStatus));
+                .mapToDto(userAccountService.changeStatus(id, statusRequestDto.getStatus()));
     }
 }

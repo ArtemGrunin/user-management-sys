@@ -5,8 +5,6 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
-import ua.com.usermanagementsystem.lib.ValidRolesSet;
-import ua.com.usermanagementsystem.lib.ValidStatus;
 
 @Data
 public class UserAccountRequestDto {
@@ -30,8 +28,6 @@ public class UserAccountRequestDto {
     @Pattern(regexp = "[a-zA-Z]*", message = "Lastname must contains only latin letters")
     @Column(length = 16)
     private String lastName;
-    @ValidRolesSet(message = "should have set id of existed roles")
     private String role;
-    @ValidStatus(message = "only ACTIVE or INACTIVE")
     private String status;
 }

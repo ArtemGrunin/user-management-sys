@@ -3,6 +3,7 @@ package ua.com.usermanagementsystem.service.impl;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import ua.com.usermanagementsystem.exception.UserAccountNotFoundException;
 import ua.com.usermanagementsystem.model.Status;
@@ -14,9 +15,12 @@ import ua.com.usermanagementsystem.service.UserAccountService;
 @RequiredArgsConstructor
 public class UserAccountServiceImpl implements UserAccountService {
     private final UserAccountRepository userAccountRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public UserAccount add(UserAccount userAccount) {
+        userAccount.setStatus(Status.ACTIVE);
+        userAccount.setPassword(passwordEncoder.encode(userAccount.getPassword()));
         return userAccountRepository.save(userAccount);
     }
 
@@ -34,26 +38,26 @@ public class UserAccountServiceImpl implements UserAccountService {
 
     @Override
     public void delete(Long id) {
+        if (!userAccountRepository.existsById(id)) {
+            throw new UserAccountNotFoundException("User with id: " + id + " not found");
+        }
         userAccountRepository.deleteById(id);
     }
 
     @Override
     public UserAccount update(UserAccount userAccount) {
-        if (userAccountRepository.existsById(userAccount.getId())) {
-            return userAccountRepository.save(userAccount);
-        } else {
-            throw new RuntimeException(
-                    "User with id " + userAccount.getId() + " does not exist");
+        if (!userAccountRepository.existsById(userAccount.getId())) {
+            throw new UserAccountNotFoundException("User with id: "
+                    + userAccount.getId() + " not found");
         }
+        return userAccountRepository.save(userAccount);
     }
 
     @Override
     public UserAccount findByUsername(String name) {
-        UserAccount user = userAccountRepository.findByUsername(name);
-        if (user == null) {
-            throw new UserAccountNotFoundException("User with id: " + name + " not found");
-        }
-        return user;
+        return userAccountRepository.findByUsername(name)
+                .orElseThrow(() -> new UserAccountNotFoundException("User with username: "
+                        + name + " not found"));
     }
 
     @Override
